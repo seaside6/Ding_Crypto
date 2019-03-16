@@ -32,7 +32,7 @@ class DingTalkCrypto(object):
         :param encrypt_text: encoded text
         :return: rand_str, length, msg, corp_id
         """
-        aes_msg = base64.decodestring(encrypt_text)
+        aes_msg = base64.decodestring(encrypt_text.encode('utf8'))
         pkcs7_text = self._cipher.decrypt(aes_msg)
         text = self._pkcs7.decode(pkcs7_text)
         rand_str = text[:16]  # 16字节随机字符串
@@ -58,7 +58,7 @@ class DingTalkCrypto(object):
         aes_text = self._cipher.encrypt(pkcs7_text)
         #b = base64.encodestring(aes_text)
         b = base64.b64encode(aes_text)
-        return b
+        return b.decode('utf8')
 
     @staticmethod
     def _length(text):
@@ -79,7 +79,8 @@ class DingTalkCrypto(object):
         :param signature: 签名
         :return: boolean
         """
-        return self._make_signature(encrypt_text, timestamp, nonce, self._token) == signature
+        new_signature = self._make_signature(encrypt_text, timestamp, nonce, self._token)
+        return new_signature == signature
 
     def get_random_str(self):
         """ 随机生成16位字符串

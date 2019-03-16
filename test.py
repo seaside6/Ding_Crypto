@@ -5,73 +5,47 @@ import requests
 import json
 from crypto import DingTalkCrypto
 
+# 钉钉官方给的测试数据
+# https://open-doc.dingtalk.com/microapp/faquestions/ltr370
+encrypt_text = "1a3NBxmCFwkCJvfoQ7WhJHB+iX3qHPsc9JbaDznE1i03peOk1LaOQoRz3+nlyGNhwmwJ3vDMG+OzrHMeiZI7gTRWVdUBmfxjZ8Ej23JVYa9VrYeJ5as7XM/ZpulX8NEQis44w53h1qAgnC3PRzM7Zc/D6Ibr0rgUathB6zRHP8PYrfgnNOS9PhSBdHlegK+AGGanfwjXuQ9+0pZcy0w9lQ=="
 
-random_token = '01234565789'
-aes_key = '21cq6q1gsl59sh5oyjxauygcitsboxxccc02xr2zgpb'
-corpid = 'ding90c5413cc3718b5e35c2f4657eb6xxxxx'
-access_token = 'xxxx'
-call_back_tags = ['user_add_org', 'user_modify_org', 'user_leave_org']
-url = 'http://xxx.vaiwan.com/dingding/call_back_url'
+aes_key = '4g5j64qlyl3zvetqxz5jiocdr586fn2zvjpa8zls3ij'
+token = '123456'
+corpid = 'suite4xxxxxxxxxxxxxxx'
 
-
-def register_call_back_interface(random_token, aes_key, url, call_back_tags):
-    """
-    注册回调接口
-    :param random_token: 在钉钉模型上的 token 随机填写
-    :param aes_key:  在钉钉模型上的 aes_key 随机生成的 43位 aes_key
-    :param url:  ‘填写要回调的URL地址’
-    :param call_back_tags: ‘填写要回调的事件’
-    :return:
-    """
-    data = {
-        "call_back_tag": call_back_tags,
-        "token": random_token,
-        "aes_key": aes_key,
-        "url": url
-    }
-    header = {'Content-Type': 'application/json'}
-    token_dict = {'access_token': access_token}
-    res = requests.post("https://oapi.dingtalk.com/call_back/register_call_back",
-                        headers=header,
-                        params=token_dict,
-                        data=json.dumps(data))
-    print(res.json())
-    try:
-        return res.json()['errcode']
-    except:
-        self.__raise_error(res)
+signature = '5a65ceeef9aab2d149439f82dc191dd6c5cbe2c0'
+timestamp = '1445827045067'
+nonce = 'nEXhMP4r'
 
 
-#@app.route('/dingtalk/call_back_url',methods=['POST'])#类似Flask等框架下使用
-def dingding_call_back(request_json, request_args):#测试时可模拟钉钉的请求参数
-    dingcrypto = DingTalkCrypto(aes_key, random_token, corpid)
-    rand_str, length, msg, key = dingcrypto.decrypt(request_json.get('encrypt').encode('utf8'))
+crypto = DingTalkCrypto(aes_key, token, corpid)
 
-    safe_msg = eval(msg)#safe_eval
-    event_type = safe_msg.get('EventType') 
-    if event_type != 'check_url' and event_type != 'debug_callback':
-        print('Event type error!')
+class TestCrypto:
+    def test_encrypt(self):
+        content = 'success'
+        encrypt_msg = crypto.encrypt(content)
+        randstr, length, msg, suite_key = crypto.decrypt(encrypt_msg)
+        assert msg.decode() == content
 
-    signature_get, timestamp_get, nonce_get = request_args.get('signature'),\
-        request_args.get('timestamp'), request_args.get('nonce')
-    dingcrypto = DingTalkCrypto(aes_key, random_token, corpid)
-    encrypt = dingcrypto.encrypt("success").decode('utf8')
-    signature, timestamp, nonce = dingcrypto.sign(encrypt, timestamp_get, nonce_get)
-    script_response = {
-        'msg_signature': signature,
-        'timeStamp': timestamp_get,
-        'nonce': nonce_get,
-        'encrypt': encrypt
-        }
-    return script_response
+    def test_decrypt(self):
+        randstr, length, msg, suite_key = crypto.decrypt(encrypt_text)
+        msg = json.loads(msg)
+
+        assert msg['EventType'] == 'check_create_suite_url'
+        assert msg['Random'] == 'LPIdSnlF'
+        assert suite_key.decode() == 'suite4xxxxxxxxxxxxxxx'
+
+    def test_check_signature(self):
+        assert crypto.check_signature(encrypt_text, timestamp, nonce, signature)
+
+    def test_sign(self):
+        actual_sig, actual_time, actual_nonce = crypto.sign(encrypt_text, timestamp, nonce)
+        assert signature == actual_sig
 
 
 if __name__ == "__main__":
-    return_val = register_call_back_interface(random_token, aes_key, url, call_back_tags)
-    if return_val != 0:
-        print('Register call back error!')
-
-    request_args = {'signature':'xxxx', 'timestamp':'1552640489665', 'nonce':'ORQWdfs6'}
-    request_json = {'encrypt' :'xxxx'}
-    response = dingding_call_back(request_json, request_args)
-    print(response) 
+    test = TestCrypto()
+    test.test_encrypt()
+    test.test_decrypt()
+    test.test_sign()
+    test.test_check_signature()
