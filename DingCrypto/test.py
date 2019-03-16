@@ -22,7 +22,7 @@ crypto = DingTalkCrypto(aes_key, token, corpid)
 
 class TestCrypto:
     def test_encrypt(self):
-        content = 'success'
+    	content = 'success'
         encrypt_msg = crypto.encrypt(content)
         randstr, length, msg, suite_key = crypto.decrypt(encrypt_msg)
         assert msg.decode() == content
@@ -44,8 +44,8 @@ class TestCrypto:
 
 
 if __name__ == "__main__":
-    test = TestCrypto()
-    test.test_encrypt()
-    test.test_decrypt()
-    test.test_sign()
-    test.test_check_signature()
+	test = TestCrypto()
+	test.test_encrypt()
+	test.test_decrypt()
+	test.test_sign()
+	test.test_check_signature()
